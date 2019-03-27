@@ -3,31 +3,31 @@
 #include<sys/time.h>
 #include<mpi.h>
 
-#define max_num 1000
+#define max_num 1000 //maximum random number the program can generte
 
 int main(int argc, char* argv[])
 {
 	int i, j, k;
-	int result[max_num];
+	int result[max_num]; //used to save all the random number we will use
 	int result1[max_num];
-	int num_num;
-	int num_class;
-	int *class_vector;
-  int b;
+	int num_num; //how many numbers we will use
+	int num_class; //how many class we have
+	int *class_vector; //this vector is used to save how many numbers in each class
+  	int b;
 	int name_len;
 	int rank, size;
 	int ime;
 	int *num;
 	int start = 0;
-  int end = 0;
+  	int end = 0;
 	int change_num;
  
-  int class_per_node;
-  int class_now; //
-  int num_per_class; 
+  	int class_per_node;
+  	int class_now; //
+  	int num_per_class; 
   
-  int class_max_node;
-  int last_class_max;
+  	int class_max_node;
+  	int last_class_max;
  
 	struct timeval start_t, end_t;
 	char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -46,26 +46,26 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	
 	gethostname(processor_name, &name_len); //get the name of node
-	if (size == 1) //increase the robust of my program
+	if (size == 1) //increase the robust of my program, if I just have 1 node and 1 task in this node
 	{
 		printf("How may numbers you want?\n");
 		scanf("%d", &num_num);
-    printf("How many classes you have?(should be smaller than numbers you have)\n");
+    		printf("How many classes you have?(should be smaller than numbers you have)\n");
 		scanf("%d", &num_class);
 		num = (int*)malloc(num_num * sizeof(int));
-    class_vector = (int*)malloc((num_class) * sizeof(int));
-    b = max_num/num_class;
+    		class_vector = (int*)malloc((num_class) * sizeof(int));
+    		b = max_num/num_class; //how many numbers in each class
 		for (i = 0; i < num_num; i++)
 		{
 			num[i] = rand() % max_num;// + 1;
-      result[num[i] - 1] += 1;
-      class_vector[num[i]/b] += 1;
-		}
-    for (i = 0; i < max_num; i++)
+      			result[num[i] - 1] += 1;
+      			class_vector[num[i]/b] += 1;
+		} //generate data randomly
+    		for (i = 0; i < max_num; i++)
 		{
 			if (result[i] != 0)
 			{
-        b = max_num/num_class;
+        			b = max_num/num_class;
 				printf("Have %d numbers of %d in class %d; " ,result[i], i+1, (i+1)/b);
 				if ((k + 1) % 2 == 0)
 				{
@@ -79,11 +79,11 @@ int main(int argc, char* argv[])
 		{
 			printf("In class %d, we have %d numbers\n", i, class_vector[i]);
 		}
-    printf("You just use one processor!\n");
+    		printf("You just use one node and one task!\n");
 		MPI_Finalize();
 		return 0;
 	}
-	if (rank == 0)
+	if (rank == 0) //for node 0
 	{
 		printf("How many number you want?\n");
 		scanf("%d", &num_num);
@@ -103,51 +103,51 @@ int main(int argc, char* argv[])
 		}	
 		start = 0;
 		change_num = num_num;
-    class_max_node = 0;
-      ///
-    if(num_class >= size)
-    {class_per_node = (num_class-class_max_node)/(size-rank);}////////////////
-    else
-    {class_per_node = (num_class-class_max_node)/(num_class-rank);}
+    		class_max_node = 0; //the start process number of class need to be process in this node
+     		//determine how many classes need to be processed in this node
+    		if(num_class >= size)
+   		{class_per_node = (num_class-class_max_node)/(size-rank);}////////////////
+    		else
+    		{class_per_node = (num_class-class_max_node)/(num_class-rank);}
       
-    class_max_node += class_per_node;
+    		class_max_node += class_per_node;
 		
-    end = num_num;
-    class_now = 0;
+   		end = num_num;
+    		class_now = 0;
     
 		gettimeofday(&start_t, NULL);
-    b = max_num/num_class; 
-    for(i = start; i < end; i++)
-    {
-       if(num[i]/b < class_max_node)
-       {
-         result[num[i]] += 1;
-         class_vector[num[i]/b] += 1;
-       }
+    		b = max_num/num_class; 
+    		for(i = start; i < end; i++)
+    		{
+      		 	if(num[i]/b < class_max_node)
+	       		{
+         		result[num[i]] += 1;
+         		class_vector[num[i]/b] += 1;
+       			}
        
-    }
-    
+    		}
+    		//send all data to next node
 		MPI_Send(&start, 1, MPI_INT, 1, 99, MPI_COMM_WORLD);
-    MPI_Send(&class_max_node, 1, MPI_INT, 1, 99, MPI_COMM_WORLD);
-    MPI_Send(&num_class, 1,MPI_INT,1,99,MPI_COMM_WORLD);
+    		MPI_Send(&class_max_node, 1, MPI_INT, 1, 99, MPI_COMM_WORLD);
+   	 	MPI_Send(&num_class, 1,MPI_INT,1,99,MPI_COMM_WORLD);
 		MPI_Send(&num_num, 1, MPI_INT, 1, 99, MPI_COMM_WORLD);
 		MPI_Send(&change_num, 1, MPI_INT, 1, 99, MPI_COMM_WORLD);
 		MPI_Send(&num[0], num_num, MPI_INT, 1, 99, MPI_COMM_WORLD);
-    MPI_Send(&result[0], max_num, MPI_INT, 1, 99, MPI_COMM_WORLD);
-    MPI_Send(&class_vector[0], num_class, MPI_INT,1,99,MPI_COMM_WORLD);
+    		MPI_Send(&result[0], max_num, MPI_INT, 1, 99, MPI_COMM_WORLD);
+    		MPI_Send(&class_vector[0], num_class, MPI_INT,1,99,MPI_COMM_WORLD);
 		
-    i = size - 1;
-		
+		//receive all data from the last node
+    		i = size - 1;
 		MPI_Recv(&start, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
-    MPI_Recv(&class_now, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
-    MPI_Recv(&num_class, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
+    		MPI_Recv(&class_now, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
+    		MPI_Recv(&num_class, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
 		MPI_Recv(&num_num, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
 		MPI_Recv(&change_num, 1, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
 		MPI_Recv(&num[0], num_num, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
 			
-	  MPI_Recv(&result[0], max_num, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
+	 	MPI_Recv(&result[0], max_num, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
       
-    MPI_Recv(&class_vector[0], num_class, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
+    		MPI_Recv(&class_vector[0], num_class, MPI_INT, i, 99, MPI_COMM_WORLD, &status);
 		
 		
 		gettimeofday(&end_t, NULL);
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 		{
 			if (result[i] != 0)
 			{
-        b = max_num/num_class;
+        			b = max_num/num_class;
 				printf("Have %d numbers of %d in class %d; " ,result[i], i+1, (i+1)/b);
 				if ((k + 1) % 2 == 0)
 				{
@@ -176,55 +176,55 @@ int main(int argc, char* argv[])
 	}
 	if (rank >= 1)
 	{
+		//receive data from last node
 		MPI_Recv(&start, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
-    MPI_Recv(&class_max_node, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
- 	  MPI_Recv(&num_class, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
+    		MPI_Recv(&class_max_node, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
+ 	  	MPI_Recv(&num_class, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
 		MPI_Recv(&num_num, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
 		MPI_Recv(&change_num, 1, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
 
 		num = (int*)malloc((num_num) * sizeof(int));
 		MPI_Recv(&num[0], num_num, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
-    MPI_Recv(&result[0], max_num, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
-    class_vector = (int*)malloc((num_class)*sizeof(int));
+    		MPI_Recv(&result[0], max_num, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
+    		class_vector = (int*)malloc((num_class)*sizeof(int));
 		MPI_Recv(&class_vector[0], num_class, MPI_INT, rank - 1, 99, MPI_COMM_WORLD, &status);
     
 		if (class_max_node < num_class)
 		{
-      if(num_class>= size)
-      {class_per_node = (num_class-class_max_node)/(size-rank);}////////////////
-      else
-      {class_per_node = (num_class-class_max_node)/(num_class-rank);}
-        ////
-      end = num_num;
-      last_class_max = class_max_node;
-      class_max_node += class_per_node;
+      			if(num_class>= size)
+      			{class_per_node = (num_class-class_max_node)/(size-rank);}////////////////
+      			else
+      			{class_per_node = (num_class-class_max_node)/(num_class-rank);}
+      			end = num_num;
+      			last_class_max = class_max_node;
+      			class_max_node += class_per_node;
       
 			for (i = start; i < end; i+=1)
 			{
-        b = max_num/num_class;
+        		b = max_num/num_class;
         
-        if(num[i]/b < class_max_node && num[i]/b >= last_class_max)
-        {
-          result[num[i]] += 1;
-          class_vector[num[i]/b] += 1;
-        }
+        		if(num[i]/b < class_max_node && num[i]/b >= last_class_max)
+       			{
+         	 		result[num[i]] += 1;
+          			class_vector[num[i]/b] += 1;
+       	 		}
         
 			}
 			//printf("%d for loop is okay!\n", rank);
 		}
-	
-    MPI_Send(&start, 1, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
-    MPI_Send(&class_max_node, 1,MPI_INT,(rank + 1) % size, 99, MPI_COMM_WORLD);
-    MPI_Send(&num_class, 1,MPI_INT,(rank + 1) % size, 99, MPI_COMM_WORLD);
+		//send data to next node
+    		MPI_Send(&start, 1, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
+   		MPI_Send(&class_max_node, 1,MPI_INT,(rank + 1) % size, 99, MPI_COMM_WORLD);
+    		MPI_Send(&num_class, 1,MPI_INT,(rank + 1) % size, 99, MPI_COMM_WORLD);
 		MPI_Send(&num_num, 1, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
 		MPI_Send(&change_num, 1, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
 		MPI_Send(&num[0], num_num, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
 		MPI_Send(&result[0], max_num, MPI_INT, (rank + 1) % size, 99, MPI_COMM_WORLD);
-    MPI_Send(&class_vector[0], num_class, MPI_INT,(rank + 1) % size,99,MPI_COMM_WORLD);
+    		MPI_Send(&class_vector[0], num_class, MPI_INT,(rank + 1) % size,99,MPI_COMM_WORLD);
 	}
-
+	//free the memory space
 	free(num);
-  free(class_vector);
+  	free(class_vector);
 	MPI_Barrier(MPI_COMM_WORLD);
 	MPI_Finalize();
 	return 0;
